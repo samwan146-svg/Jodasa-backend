@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Role, StudentProfile, TeacherProfile
+from .models import User, Role, StudentProfile, TeacherProfile, ParentProfile   
 from .models import School
 from .models import AuditLog
 
@@ -49,6 +49,9 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
                 user=user,
                 staff_id=f"STF{user.id}"
         )
+
+        elif role.name == "parent":
+            ParentProfile.objects.create(user=user)
 
         return user
 

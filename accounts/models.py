@@ -82,5 +82,12 @@ class AuditLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user} - {self.action} - {self.target_email}"     
+        return f"{self.user} - {self.action} - {self.target_email}" 
+
+class ParentProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=20, blank=True)
+
+    def __str__(self):
+        return f"Parent: {self.user.email}"
 # Create your models here.

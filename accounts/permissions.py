@@ -11,6 +11,9 @@ class IsSubscriptionActive(BasePermission):
         if not user.school:
             return True
 
+        if request.user.is_superuser:
+            return True    
+
         school = user.school
         school.update_subscription_status()
 
@@ -21,6 +24,10 @@ class IsSubscriptionActive(BasePermission):
 
 class IsAdminUserRole(BasePermission):
     def has_permission(self, request, view):
+        
+        if request.user.is_authenticated and request.user.is_superuser:
+            return True
+
         return (
             request.user.is_authenticated and
             request.user.role is not None and
@@ -30,6 +37,10 @@ class IsAdminUserRole(BasePermission):
 
 class CanCreateSchool(BasePermission):
     def has_permission(self, request, view):
+
+        if request.user.is_authenticated and request.user.is_superuser:
+            return True
+
         # Allow if user has no school yet
         if request.user.is_authenticated and request.user.school is None:
             return True
