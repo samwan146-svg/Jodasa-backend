@@ -1,3 +1,5 @@
+from urllib import request
+
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Role, StudentProfile, TeacherProfile, ParentProfile   
@@ -21,12 +23,11 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'username', 'password', 'role']
+
     def validate_email(self, value):
         request = self.context.get('request')
-    
-        if User.objects.filter(email=value, school=request.user.school).exists():
-            raise serializers.ValidationError("User with this email already exists in this school")
-    
+        if request and User.objects.filter(email=value, school=request.user.school).exists():
+           raise serializers.ValidationError("User with this email already exists in this school")
         return value    
 
     def create(self, validated_data):
@@ -52,6 +53,12 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
 
         elif role.name == "parent":
             ParentProfile.objects.create(user=user)
+
+        elif role.name == 'student':
+            StudentProfile.objects.create(
+            user=user,
+            admission_number=f"ADM{user.id}"
+        )    
 
         return user
 

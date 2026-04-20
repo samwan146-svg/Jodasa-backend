@@ -39,7 +39,6 @@ class Role(models.Model):
         return self.name
 
 class User(AbstractUser):
-    username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
 
     school = models.ForeignKey('School', on_delete=models.CASCADE, null=True, blank=True)

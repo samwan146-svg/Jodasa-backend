@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, Role, School
-from .models import StudentProfile, TeacherProfile
+from .models import StudentProfile, TeacherProfile, ParentProfile
 from .models import AuditLog
 
 
@@ -35,3 +35,4 @@ admin.site.register(Role)
 admin.site.register(School)
 admin.site.register(StudentProfile)
 admin.site.register(TeacherProfile)
+admin.site.register(ParentProfile)

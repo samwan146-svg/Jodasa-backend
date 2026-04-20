@@ -7,12 +7,12 @@ class IsSubscriptionActive(BasePermission):
 
         if not user.is_authenticated:
             return False
-
-        if not user.school:
+        
+        if request.user.is_superuser:
             return True
 
-        if request.user.is_superuser:
-            return True    
+        if not user.school:
+            return True        
 
         school = user.school
         school.update_subscription_status()
