@@ -20,6 +20,16 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import UpdateUserRoleSerializer
 from .permissions import IsSubscriptionActive
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id, school=request.user.school)
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UpdateUserRoleView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
