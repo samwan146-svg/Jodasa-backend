@@ -22,6 +22,36 @@ from .serializers import UpdateUserRoleSerializer
 from .permissions import IsSubscriptionActive
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from rest_framework import filters
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import AuditLog
+from .serializers import AuditLogSerializer
+from django.utils.dateparse import parse_date
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0]
+    return request.META.get('REMOTE_ADDR')
+
+class ApiRootView(APIView):
+    def get(self, request):
+        return Response({
+            "message": "Welcome to JODASA API",
+            "endpoints": {
+                "register": "/api/register/",
+                "login": "/api/login/",
+                "me": "/api/me/",
+                "create_school": "/api/create-school/",
+                "create_user": "/api/create-user/",
+                "list_users": "/api/users/",
+                "user_detail": "/api/users/<id>/",
+                "update_role": "/api/users/<id>/role/",
+                "delete_user": "/api/users/<id>/delete/"
+            }
+        })
 
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
@@ -37,6 +67,12 @@ class UpdateUserRoleView(APIView):
     def patch(self, request, user_id):
         user = get_object_or_404(User, id=user_id, school=request.user.school)
 
+        if user == request.user:
+            return Response(
+                {"error": "You cannot change your own role"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = UpdateUserRoleSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -45,6 +81,13 @@ class UpdateUserRoleView(APIView):
 
             user.role = role
             user.save()
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='update_role',
+                target_email=user.email,
+                ip_address=get_client_ip(request)
+            ) 
 
             return Response({
                 "message": "User role updated",
@@ -58,9 +101,18 @@ class ListUsersView(ListAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
 
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['email', 'username']
+
     def get_queryset(self):
-        # only return users in the same school
-        return User.objects.filter(school=self.request.user.school)
+        queryset = User.objects.filter(school=self.request.user.school)
+        
+        role = self.request.query_params.get('role')
+        if role:
+            queryset = queryset.filter(role__name=role)
+
+        return queryset
+        
 
 class CreateUserView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
@@ -70,6 +122,16 @@ class CreateUserView(APIView):
 
         if serializer.is_valid():
             user = serializer.save()
+
+           
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='create_user',
+                target_email=user.email,
+                ip_address=get_client_ip(request)
+            )
+
             return Response({
                 "message": "User created successfully",
                 "email": user.email,
@@ -123,11 +185,11 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
-from rest_framework import status
-from django.shortcuts import get_object_or_404
 
 class DeleteUserView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+
+    
 
     def delete(self, request, user_id):
         user = get_object_or_404(User, id=user_id, school=request.user.school)
@@ -138,11 +200,49 @@ class DeleteUserView(APIView):
                 {"error": "You cannot delete your own account"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        email = user.email
 
-        user.delete()
+        AuditLog.objects.create(
+                user=request.user,
+                action='delete_user',
+                target_email=email,
+                ip_address=get_client_ip(request)
+            )
+
+        user.delete()      
 
         return Response(
             {"message": "User deleted successfully"},
             status=status.HTTP_200_OK
-        )    
+        )
+
+class AuditLogListView(ListAPIView):
+    serializer_class = AuditLogSerializer
+    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['user__email', 'target_email', 'action']
+
+    def get_queryset(self):
+        queryset = AuditLog.objects.filter(
+            user__school=self.request.user.school
+        ).order_by('-timestamp')
+
+        # 🔥 Filter by action
+        action = self.request.query_params.get('action')
+        if action:
+            queryset = queryset.filter(action=action)
+
+        # 🔥 Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if start_date:
+            queryset = queryset.filter(timestamp__date__gte=parse_date(start_date))
+
+        if end_date:
+            queryset = queryset.filter(timestamp__date__lte=parse_date(end_date))
+
+        return queryset
 # Create your views here.

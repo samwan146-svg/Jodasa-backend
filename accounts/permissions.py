@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from rest_framework.exceptions import PermissionDenied
 
 class IsSubscriptionActive(BasePermission):
     def has_permission(self, request, view):
@@ -7,17 +8,16 @@ class IsSubscriptionActive(BasePermission):
         if not user.is_authenticated:
             return False
 
-        # allow if user has no school yet (e.g., registering)
         if not user.school:
             return True
 
         school = user.school
-
-        # update status before checking
         school.update_subscription_status()
 
-        # allow only if not expired
-        return school.subscription_status in ['trial', 'active']
+        if school.subscription_status == 'expired':
+            raise PermissionDenied("Subscription expired. Please renew.")
+
+        return True
 
 class IsAdminUserRole(BasePermission):
     def has_permission(self, request, view):

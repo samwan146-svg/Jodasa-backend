@@ -1,9 +1,6 @@
 from datetime import timedelta
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.db import models
-from django.db import models
 from django.utils import timezone
 
 
@@ -50,4 +47,40 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
+
+class StudentProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    admission_number = models.CharField(max_length=50, unique=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, blank=True)
+    grade = models.CharField(max_length=20, blank=True)
+    stream = models.CharField(max_length=20, blank=True)
+
+    def __str__(self):
+        return f"Student: {self.user.email}"
+
+
+class TeacherProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    staff_id = models.CharField(max_length=50, unique=True)
+    subjects = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Teacher: {self.user.email}"
+
+class AuditLog(models.Model):
+    ACTION_CHOICES = [
+        ('create_user', 'Create User'),
+        ('update_role', 'Update Role'),
+        ('delete_user', 'Delete User'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+    target_email = models.CharField(max_length=255)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)  # 🔥 NEW
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.action} - {self.target_email}"     
 # Create your models here.

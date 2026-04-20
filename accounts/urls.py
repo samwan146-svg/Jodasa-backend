@@ -7,8 +7,12 @@ from .views import CreateUserView
 from .views import ListUsersView
 from .views import UpdateUserRoleView
 from .views import DeleteUserView
+from .views import UserDetailView
+from .views import ApiRootView
+from .views import AuditLogListView
 
 urlpatterns = [
+    path('', ApiRootView.as_view(), name='api-root'),
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', CustomTokenObtainPairView.as_view(), name='login'),
     path('refresh/', TokenRefreshView.as_view(), name='refresh'),
@@ -18,4 +22,6 @@ urlpatterns = [
     path('users/', ListUsersView.as_view(), name='list-users'),
     path('users/<int:user_id>/role/', UpdateUserRoleView.as_view(), name='update-user-role'),
     path('users/<int:user_id>/delete/', DeleteUserView.as_view(), name='delete-user'),
+    path('users/<int:user_id>/', UserDetailView.as_view(), name='user-detail'),
+    path('audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
 ]

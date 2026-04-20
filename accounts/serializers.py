@@ -1,14 +1,14 @@
 from rest_framework import serializers
-from .models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import User, Role, StudentProfile, TeacherProfile
 from .models import School
-from .models import Role
+from .models import AuditLog
+
 
 class UpdateUserRoleSerializer(serializers.Serializer):
     role = serializers.CharField()
 
     def validate_role(self, value):
-        from .models import Role
         if not Role.objects.filter(name=value).exists():
             raise serializers.ValidationError("Role does not exist")
         return value
@@ -16,14 +16,24 @@ class UpdateUserRoleSerializer(serializers.Serializer):
 class CreateUserByAdminSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     role = serializers.CharField()
+    
 
     class Meta:
         model = User
         fields = ['email', 'username', 'password', 'role']
+    def validate_email(self, value):
+        request = self.context.get('request')
+    
+        if User.objects.filter(email=value, school=request.user.school).exists():
+            raise serializers.ValidationError("User with this email already exists in this school")
+    
+        return value    
 
     def create(self, validated_data):
         role_name = validated_data.pop('role')
         role = Role.objects.get(name=role_name)
+
+        print("ROLE:", role.name)
 
         request = self.context.get('request')
 
@@ -33,6 +43,11 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=role,
             school=request.user.school  # inherit admin's school
+        )
+        if role.name == 'teacher':
+            TeacherProfile.objects.create(
+                user=user,
+                staff_id=f"STF{user.id}"
         )
 
         return user
@@ -66,4 +81,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password']
         )
-        return user    
+        return user
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.email')
+
+    class Meta:
+        model = AuditLog
+        fields = ['id', 'user', 'action', 'target_email', 'ip_address', 'timestamp']        
