@@ -130,3 +130,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 AUTH_USER_MODEL = 'accounts.User'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://jodasa-backend-production.up.railway.app'
+]
