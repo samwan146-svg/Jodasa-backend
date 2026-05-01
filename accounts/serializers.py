@@ -109,13 +109,23 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     school = serializers.CharField(source='user.school.name', read_only=True)
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
 
     class Meta:
         model = StudentProfile
         fields = [
-            'id', 'email', 'username', 'school',
+            'id', 'email', 'username', 'first_name', 'last_name', 'school',
             'admission_number', 'date_of_birth', 'gender', 'grade', 'stream'
         ]
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        if user_data:
+            for attr, value in user_data.items():
+                setattr(instance.user, attr, value)
+            instance.user.save()
+        return super().update(instance, validated_data)
 
 class AssessmentSerializer(serializers.ModelSerializer):
     class Meta:
