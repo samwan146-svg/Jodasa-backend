@@ -285,4 +285,39 @@ class AuditLogListView(ListAPIView):
             queryset = queryset.filter(timestamp__date__lte=parse_date(end_date))
 
         return queryset
+
+from .models import Assessment, StudentResult
+from .serializers import AssessmentSerializer, StudentResultSerializer
+
+class AssessmentListCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+
+    def get(self, request):
+        assessments = Assessment.objects.filter(school=request.user.school)
+        serializer = AssessmentSerializer(assessments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = AssessmentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(school=request.user.school)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class StudentResultListCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsSubscriptionActive]
+
+    def get(self, request):
+        results = StudentResult.objects.filter(
+            assessment__school=request.user.school
+        )
+        serializer = StudentResultSerializer(results, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = StudentResultSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 # Create your views here.

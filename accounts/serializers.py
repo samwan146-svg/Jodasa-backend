@@ -5,6 +5,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Role, StudentProfile, TeacherProfile, ParentProfile   
 from .models import School
 from .models import AuditLog
+from .models import Assessment, StudentResult
 
 
 class UpdateUserRoleSerializer(serializers.Serializer):
@@ -111,3 +112,21 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'id', 'email', 'username', 'school',
             'admission_number', 'date_of_birth', 'gender', 'grade', 'stream'
         ]
+
+class AssessmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assessment
+        fields = ['id', 'title', 'subject', 'grade', 'term', 'max_marks', 'created_at']
+
+class StudentResultSerializer(serializers.ModelSerializer):
+    student_email = serializers.CharField(source='student.user.email', read_only=True)
+    assessment_title = serializers.CharField(source='assessment.title', read_only=True)
+    subject = serializers.CharField(source='assessment.subject', read_only=True)
+
+    class Meta:
+        model = StudentResult
+        fields = [
+            'id', 'student', 'student_email', 'assessment', 'assessment_title',
+            'subject', 'raw_score', 'competency_level', 'teacher_remarks', 'date_recorded'
+        ]
+        read_only_fields = ['competency_level', 'date_recorded']        
