@@ -28,6 +28,8 @@ from rest_framework.views import APIView
 from .models import AuditLog
 from .serializers import AuditLogSerializer
 from django.utils.dateparse import parse_date
+from .models import StudentProfile
+from .serializers import StudentProfileSerializer
 
 
 def get_client_ip(request):
@@ -49,7 +51,9 @@ class ApiRootView(APIView):
                 "list_users": "/api/users/",
                 "user_detail": "/api/users/<id>/",
                 "update_role": "/api/users/<id>/role/",
-                "delete_user": "/api/users/<id>/delete/"
+                "delete_user": "/api/users/<id>/delete/",
+                "list_students": "/api/students/",
+                "student_detail": "/api/students/<id>/"
             }
         })
 
@@ -216,6 +220,42 @@ class DeleteUserView(APIView):
             {"message": "User deleted successfully"},
             status=status.HTTP_200_OK
         )
+
+class ListStudentsView(ListAPIView):
+    serializer_class = StudentProfileSerializer
+    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['user__email', 'admission_number', 'grade', 'stream']
+
+    def get_queryset(self):
+        return StudentProfile.objects.filter(
+            user__school=self.request.user.school
+        )
+
+class StudentDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+
+    def get(self, request, student_id):
+        student = get_object_or_404(
+            StudentProfile,
+            id=student_id,
+            user__school=request.user.school
+        )
+        serializer = StudentProfileSerializer(student)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, student_id):
+        student = get_object_or_404(
+            StudentProfile,
+            id=student_id,
+            user__school=request.user.school
+        )
+        serializer = StudentProfileSerializer(student, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AuditLogListView(ListAPIView):
     serializer_class = AuditLogSerializer

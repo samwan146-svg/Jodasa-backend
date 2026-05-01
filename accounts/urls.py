@@ -10,6 +10,7 @@ from .views import DeleteUserView
 from .views import UserDetailView
 from .views import ApiRootView
 from .views import AuditLogListView
+from .views import ListStudentsView, StudentDetailView
 
 urlpatterns = [
     path('', ApiRootView.as_view(), name='api-root'),
@@ -24,4 +25,6 @@ urlpatterns = [
     path('users/<int:user_id>/delete/', DeleteUserView.as_view(), name='delete-user'),
     path('users/<int:user_id>/', UserDetailView.as_view(), name='user-detail'),
     path('audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
+    path('students/', ListStudentsView.as_view(), name='list-students'),
+    path('students/<int:student_id>/', StudentDetailView.as_view(), name='student-detail'),
 ]

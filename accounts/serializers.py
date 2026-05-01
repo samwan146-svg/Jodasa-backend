@@ -98,4 +98,16 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AuditLog
-        fields = ['id', 'user', 'action', 'target_email', 'ip_address', 'timestamp']        
+        fields = ['id', 'user', 'action', 'target_email', 'ip_address', 'timestamp']
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    email = serializers.CharField(source='user.email', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    school = serializers.CharField(source='user.school.name', read_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id', 'email', 'username', 'school',
+            'admission_number', 'date_of_birth', 'gender', 'grade', 'stream'
+        ]
