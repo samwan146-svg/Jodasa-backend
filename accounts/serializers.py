@@ -19,11 +19,12 @@ class UpdateUserRoleSerializer(serializers.Serializer):
 class CreateUserByAdminSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     role = serializers.CharField()
-    
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
 
     class Meta:
         model = User
-        fields = ['email', 'username', 'password', 'role']
+        fields = ['email', 'username', 'password', 'role', 'first_name', 'last_name']
 
     def validate_email(self, value):
         request = self.context.get('request')
@@ -44,8 +45,11 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password'],
             role=role,
-            school=request.user.school  # inherit admin's school
+            school=request.user.school,
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
         )
+        
         if role.name == 'teacher':
             TeacherProfile.objects.create(
                 user=user,
