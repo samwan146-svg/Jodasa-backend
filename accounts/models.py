@@ -89,4 +89,46 @@ class ParentProfile(models.Model):
 
     def __str__(self):
         return f"Parent: {self.user.email}"
+
+class Assessment(models.Model):
+    TERM_CHOICES = [
+        ('Term 1', 'Term 1'),
+        ('Term 2', 'Term 2'),
+        ('Term 3', 'Term 3'),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    subject = models.CharField(max_length=50)
+    grade = models.CharField(max_length=20)
+    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+    max_marks = models.IntegerField(default=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.subject} ({self.grade})"
+
+
+class StudentResult(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
+    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE)
+    raw_score = models.DecimalField(max_digits=5, decimal_places=2)
+    competency_level = models.CharField(max_length=50, blank=True)
+    teacher_remarks = models.TextField(blank=True)
+    date_recorded = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        percentage = (self.raw_score / self.assessment.max_marks) * 100
+        if percentage >= 80:
+            self.competency_level = 'Exceeding Expectation (EE)'
+        elif percentage >= 50:
+            self.competency_level = 'Meeting Expectation (ME)'
+        elif percentage >= 30:
+            self.competency_level = 'Approaching Expectation (AE)'
+        else:
+            self.competency_level = 'Below Expectation (BE)'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.student} - {self.assessment.title} - {self.competency_level}"
 # Create your models here.
