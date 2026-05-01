@@ -1,5 +1,4 @@
 from urllib import request
-
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Role, StudentProfile, TeacherProfile, ParentProfile   

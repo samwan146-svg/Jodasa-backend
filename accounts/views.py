@@ -32,6 +32,8 @@ from .models import StudentProfile
 from .serializers import StudentProfileSerializer
 from .models import Assessment, StudentResult
 from .serializers import AssessmentSerializer, StudentResultSerializer
+from django.http import FileResponse
+from .report_pdf import generate_report_card_pdf
 
 
 def get_client_ip(request):
@@ -382,4 +384,68 @@ class StudentReportCardView(APIView):
                 'competency_summary': competency_summary,
             }
         }, status=status.HTTP_200_OK)
+
+class StudentReportCardPDFView(APIView):
+    permission_classes = [IsAuthenticated, IsSubscriptionActive]
+
+    def get(self, request, student_id):
+        student = get_object_or_404(
+            StudentProfile,
+            id=student_id,
+            user__school=request.user.school
+        )
+
+        term = request.query_params.get('term')
+        results = StudentResult.objects.filter(student=student)
+        if term:
+            results = results.filter(assessment__term=term)
+
+        subjects = []
+        for result in results:
+            percentage = (result.raw_score / result.assessment.max_marks) * 100
+            subjects.append({
+                'subject': result.assessment.subject,
+                'term': result.assessment.term,
+                'marks': f"{result.raw_score}/{result.assessment.max_marks}",
+                'percentage': round(percentage, 2),
+                'competency_level': result.competency_level,
+                'teacher_remarks': result.teacher_remarks,
+            })
+
+        total_score = sum(r.raw_score for r in results)
+        total_possible = sum(r.assessment.max_marks for r in results)
+        average_percentage = round((total_score / total_possible) * 100, 2) if total_possible > 0 else 0
+
+        competency_summary = {
+            'EE': sum(1 for r in results if 'EE' in r.competency_level),
+            'ME': sum(1 for r in results if 'ME' in r.competency_level),
+            'AE': sum(1 for r in results if 'AE' in r.competency_level),
+            'BE': sum(1 for r in results if 'BE' in r.competency_level),
+        }
+
+        data = {
+            'student': {
+                'name': f"{student.user.first_name} {student.user.last_name}",
+                'email': student.user.email,
+                'admission_number': student.admission_number,
+                'grade': student.grade,
+                'stream': student.stream,
+                'school': student.user.school.name,
+            },
+            'term': term or 'All Terms',
+            'subjects': subjects,
+            'summary': {
+                'total_marks': f"{total_score}/{total_possible}",
+                'average_percentage': average_percentage,
+                'competency_summary': competency_summary,
+            }
+        }
+
+        buffer = generate_report_card_pdf(data)
+
+        return FileResponse(
+            buffer,
+            as_attachment=True,
+            filename=f"report_{student.admission_number}_{data['term']}.pdf"
+        )
 # Create your views here.
