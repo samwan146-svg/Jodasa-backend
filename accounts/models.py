@@ -17,10 +17,15 @@ class School(models.Model):
     is_on_pilot = models.BooleanField(default=True)
 
     def get_days_remaining(self):
-        # Changed from 12 to 60 days
+    # Check if the school or the date exists before doing math
+        if not self.created_at:
+            return 0
+    
         expiry_date = self.created_at + timedelta(days=60)
         remaining = (expiry_date - timezone.now()).days
-        return max(0, remaining)
+    
+    # Return 0 if the trial has expired (don't allow negative numbers)
+    return max(0, remaining)
 
     subscription_status = models.CharField(
         max_length=10,
