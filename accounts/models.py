@@ -14,6 +14,13 @@ class School(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
     county = models.CharField(max_length=100)
+    is_on_pilot = models.BooleanField(default=True)
+
+    def get_days_remaining(self):
+        # Changed from 12 to 60 days
+        expiry_date = self.created_at + timedelta(days=60)
+        remaining = (expiry_date - timezone.now()).days
+        return max(0, remaining)
 
     subscription_status = models.CharField(
         max_length=10,

@@ -67,9 +67,11 @@ class CreateUserByAdminSerializer(serializers.ModelSerializer):
         return user
 
 class SchoolSerializer(serializers.ModelSerializer):
+    days_left = serializers.ReadOnlyField(source='get_days_remaining')
+
     class Meta:
         model = School
-        fields = ['id', 'name', 'code', 'county']
+        fields = ['id', 'name', 'code', 'county', 'is_on_pilot', 'days_left']
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
