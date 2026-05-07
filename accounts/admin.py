@@ -12,14 +12,14 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal Info', {'fields': ('role', 'school')}),
+        ('Personal Info', {'fields': ('username', 'first_name', 'last_name', 'role', 'school')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
 
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'role', 'school'),
+            'fields': ('email', 'username', 'password1', 'password2', 'role', 'school'),
         }),
     )
 
