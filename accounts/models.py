@@ -32,7 +32,8 @@ class School(models.Model):
     trial_start_date = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     def is_trial_expired(self):
-        return timezone.now() > self.trial_start_date + timedelta(days=14)
+        #Sync trial expiration with get_days_remaining
+        return timezone.now() > self.trial_start_date + timedelta(days=60)
     def update_subscription_status(self):
         if self.subscription_status == 'trial' and self.is_trial_expired():
             self.subscription_status = 'expired'
@@ -87,6 +88,7 @@ class AuditLog(models.Model):
         ('delete_user', 'Delete User'),
     ]
 
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     target_email = models.CharField(max_length=255)
@@ -144,4 +146,24 @@ class StudentResult(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.assessment.title} - {self.competency_level}"
+
+class FeeStructure(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    grade = models.CharField(max_length=20)
+    term = models.CharField(max_length=20, choices=[('Term 1', 'Term 1'), ('Term 2', 'Term 2'), ('Term 3', 'Term 3')])
+    year = models.IntegerField(default=2026)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.school.name} - {self.grade} ({self.term})"
+
+class FeePayment(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    mpesa_receipt = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    description = models.CharField(max_length=255, default="School Fees Payment")
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.user.first_name} - {self.mpesa_receipt}"        
 # Create your models here.
