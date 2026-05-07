@@ -9,30 +9,39 @@ from .models import AuditLog
 class UserAdmin(BaseUserAdmin):
     ordering = ['email']
     list_display = ['email', 'role', 'school', 'is_active', 'is_staff']
+    list_filter = ['role', 'school', 'is_active', 'is_staff']
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal Info', {'fields': ('username', 'first_name', 'last_name', 'role', 'school')}),
+        ('Personal Info', {'fields': ('first_name', 'last_name', 'role', 'school')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
 
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'password1', 'password2', 'role', 'school'),
+            'fields': ('email', 'password1', 'password2', 'role', 'school'),
         }),
     )
 
-    search_fields = ['email']
+    search_fields = ['email', 'first_name', 'last_name']
     filter_horizontal = ()
+
+
+@admin.register(School)
+class SchoolAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'county', 'subscription_status', 'is_active']
+    list_filter = ['subscription_status', 'is_active', 'is_on_pilot']
+    search_fields = ['name', 'code', 'county']
+
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
     list_display = ['user', 'action', 'target_email', 'timestamp']
     search_fields = ['user__email', 'target_email']
 
+
 admin.site.register(Role)
-admin.site.register(School)
 admin.site.register(StudentProfile)
 admin.site.register(TeacherProfile)
 admin.site.register(ParentProfile)
