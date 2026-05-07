@@ -31,7 +31,7 @@ class UserAdmin(BaseUserAdmin):
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
     list_display = ['name', 'code', 'county', 'subscription_status', 'is_active']
-    list_filter = ['subscription_status', 'is_active', 'is_on_pilot']
+    list_filter = ['subscription_status', 'is_active']  # Remove is_on_pilot
     search_fields = ['name', 'code', 'county']
 
 
