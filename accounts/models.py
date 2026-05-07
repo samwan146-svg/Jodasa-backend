@@ -2,6 +2,7 @@ from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from .managers import UserManager
 
 
 class School(models.Model):
@@ -48,12 +49,16 @@ class Role(models.Model):
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-
     school = models.ForeignKey('School', on_delete=models.CASCADE, null=True, blank=True)
     role = models.ForeignKey('Role', on_delete=models.SET_NULL, null=True, blank=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.email
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
