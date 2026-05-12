@@ -38,5 +38,5 @@ urlpatterns = [
     path('results/', StudentResultListCreateView.as_view(), name='results'),
     path('students/<int:student_id>/report/', StudentReportCardView.as_view(), name='report-card'),
     path('students/<int:student_id>/report/pdf/', StudentReportCardPDFView.as_view(), name='report-card-pdf'),
-    path('api/payments/callback/', mpesa_callback.as_view(), name='mpesa-callback'),
+    path('api/payments/callback/', mpesa_callback, name='mpesa-callback'),
 ]
