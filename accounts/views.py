@@ -34,6 +34,14 @@ from .models import Assessment, StudentResult
 from .serializers import AssessmentSerializer, StudentResultSerializer
 from django.http import FileResponse
 from .report_pdf import generate_report_card_pdf
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from .models import StudentProfile, StudentResult, Assessment
+from django.db.models import Avg
+from .models import FeePayment, StudentProfile
+import json
 
 
 def get_client_ip(request):
@@ -322,8 +330,6 @@ class StudentResultListCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-from .models import StudentProfile, StudentResult, Assessment
-from django.db.models import Avg
 
 class StudentReportCardView(APIView):
     permission_classes = [IsAuthenticated, IsSubscriptionActive]
@@ -448,4 +454,31 @@ class StudentReportCardPDFView(APIView):
             as_attachment=True,
             filename=f"report_{student.admission_number}_{data['term']}.pdf"
         )
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def mpesa_callback(request):
+    data = request.data
+    # Safaricom sends a "ResultCode" of 0 for success
+    result_code = data['Body']['stkCallback']['ResultCode']
+    merchant_request_id = data['Body']['stkCallback']['MerchantRequestID']
+    
+    if result_code == 0:
+        # Transaction Successful
+        callback_metadata = data['Body']['stkCallback']['CallbackMetadata']['Item']
+        amount = 0
+        receipt = ""
+        
+        for item in callback_metadata:
+            if item['Name'] == 'Amount':
+                amount = item['Value']
+            if item['Name'] == 'MpesaReceiptNumber':
+                receipt = item['Value']
+
+        # Update your FeePayment record (we'll look it up by ID later)
+        # For now, let's just log it or update the relevant student
+        print(f"Payment Received! Amount: {amount}, Receipt: {receipt}")
+        
+    return Response({"ResultCode": 0, "ResultDesc": "Success"})
 # Create your views here.

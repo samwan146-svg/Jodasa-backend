@@ -14,6 +14,8 @@ from .views import ListStudentsView, StudentDetailView
 from .views import AssessmentListCreateView, StudentResultListCreateView
 from .views import StudentReportCardView
 from .views import StudentReportCardPDFView
+from . import views
+
 
 
 urlpatterns = [
@@ -35,4 +37,5 @@ urlpatterns = [
     path('results/', StudentResultListCreateView.as_view(), name='results'),
     path('students/<int:student_id>/report/', StudentReportCardView.as_view(), name='report-card'),
     path('students/<int:student_id>/report/pdf/', StudentReportCardPDFView.as_view(), name='report-card-pdf'),
+    path('api/payments/callback/', views.mpesa_callback, name='mpesa-callback'),
 ]
