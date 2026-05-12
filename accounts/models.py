@@ -16,6 +16,16 @@ class School(models.Model):
     code = models.CharField(max_length=50, unique=True)
     county = models.CharField(max_length=100)
     is_on_pilot = models.BooleanField(default=True)
+    name = models.CharField(max_length=255)
+    logo = models.ImageField(upload_to='school_logos/', null=True, blank=True)
+    
+    # M-Pesa Credentials per School
+    mpesa_shortcode = models.CharField(max_length=10, blank=True)
+    mpesa_consumer_key = models.CharField(max_length=255, blank=True)
+    mpesa_consumer_secret = models.CharField(max_length=255, blank=True)
+    
+    # CBC Preferences
+    auto_generate_remarks = models.BooleanField(default=True)
 
     def get_days_remaining(self):
         if not self.trial_start_date:
