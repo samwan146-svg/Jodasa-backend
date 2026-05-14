@@ -185,5 +185,27 @@ class FeePayment(models.Model):
     checkout_request_id = models.CharField(max_length=100, blank=True, null=True) # To track the specific STK session
 
     def __str__(self):
-        return f"{self.student.user.first_name} - {self.mpesa_receipt}"        
+        return f"{self.student.user.first_name} - {self.mpesa_receipt}"
+
+class CBCEvidence(models.Model):
+    COMPETENCY_CHOICES = [
+        ('Communication', 'Communication and Collaboration'),
+        ('Critical Thinking', 'Critical Thinking and Problem Solving'),
+        ('Creativity', 'Creativity and Imagination'),
+        ('Citizenship', 'Citizenship'),
+        ('Learning to Learn', 'Learning to Learn'),
+        ('Self-Efficacy', 'Self-Efficacy'),
+        ('Digital Literacy', 'Digital Literacy'),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='evidence_gallery')
+    subject = models.CharField(max_length=50)
+    competency_tagged = models.CharField(max_length=50, choices=COMPETENCY_CHOICES)
+    evidence_image = models.ImageField(upload_to='cbc_evidence/')
+    teacher_notes = models.TextField(blank=True)
+    date_uploaded = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Evidence: {self.student.user.first_name} - {self.competency_tagged}"        
 # Create your models here.

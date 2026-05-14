@@ -40,10 +40,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .models import StudentProfile, StudentResult, Assessment
 from django.db.models import Avg
-from .models import FeePayment, StudentProfile
+from .models import FeePayment, StudentProfile, CBCEvidence
 import json
 from .cbc_ai_engine import CBCAIEngine
 from .daraja_utils import DarajaClient
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 def get_client_ip(request):
@@ -590,4 +591,42 @@ def initiate_payment(request):
         return Response({"message": "STK Push Sent Successfully", "status": "Pending"}, status=200)
     
     return Response({"error": "Safaricom Daraja API rejected the process request.", "detail": response}, status=400)    
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_cbc_evidence(request):
+    user = request.user
+    school = user.school
+    
+    # Enable file handling parsers
+    request.parsers = [MultiPartParser(), FormParser()]
+    
+    student_id = request.data.get('student_id')
+    subject = request.data.get('subject')
+    competency = request.data.get('competency')
+    image_file = request.FILES.get('image')
+    notes = request.data.get('notes', '')
+
+    if not student_id or not image_file or not competency:
+        return Response({"detail": "Missing student ID, image, or competency tag."}, status=400)
+
+    try:
+        student = StudentProfile.objects.get(id=student_id, school=school)
+        
+        evidence = CBCEvidence.objects.create(
+            school=school,
+            student=student,
+            subject=subject,
+            competency_tagged=competency,
+            evidence_image=image_file,
+            teacher_notes=notes
+        )
+        
+        return Response({
+            "message": "✅ Evidence uploaded and linked to KNEC compliance tracker successfully!",
+            "id": evidence.id
+        }, status=201)
+
+    except StudentProfile.DoesNotExist:
+        return Response({"detail": "Student record not found."}, status=404)
 # Create your views here.

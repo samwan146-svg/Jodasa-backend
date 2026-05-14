@@ -42,4 +42,5 @@ urlpatterns = [
     path('api/payments/initiate/', views.initiate_payment, name='initiate-payment'),
     path('api/payments/callback/', views.mpesa_callback, name='mpesa-callback'),
     path('api/results/generate-remarks/', views.generate_class_ai_remarks, name='generate-ai-remarks'),
+    path('api/cbc/upload-evidence/', views.upload_cbc_evidence, name='upload-cbc-evidence'),
 ]
