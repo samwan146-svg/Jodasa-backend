@@ -42,6 +42,8 @@ from .models import StudentProfile, StudentResult, Assessment
 from django.db.models import Avg
 from .models import FeePayment, StudentProfile
 import json
+from .cbc_ai_engine import CBCAIEngine
+from .daraja_utils import DarajaClient
 
 
 def get_client_ip(request):
@@ -457,28 +459,135 @@ class StudentReportCardPDFView(APIView):
 
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([AllowAny])  # Safaricom hits this publicly without JWT
 def mpesa_callback(request):
-    data = request.data
-    # Safaricom sends a "ResultCode" of 0 for success
-    result_code = data['Body']['stkCallback']['ResultCode']
-    merchant_request_id = data['Body']['stkCallback']['MerchantRequestID']
-    
-    if result_code == 0:
-        # Transaction Successful
-        callback_metadata = data['Body']['stkCallback']['CallbackMetadata']['Item']
-        amount = 0
-        receipt = ""
-        
-        for item in callback_metadata:
-            if item['Name'] == 'Amount':
-                amount = item['Value']
-            if item['Name'] == 'MpesaReceiptNumber':
-                receipt = item['Value']
+    stk_callback = request.data.get('Body', {}).get('stkCallback', {})
+    result_code = stk_callback.get('ResultCode')
+    checkout_request_id = stk_callback.get('CheckoutRequestID')
 
-        # Update your FeePayment record (we'll look it up by ID later)
-        # For now, let's just log it or update the relevant student
-        print(f"Payment Received! Amount: {amount}, Receipt: {receipt}")
+    try:
+        # Find the pending payment record we created when triggering the STK push
+        payment = FeePayment.objects.get(checkout_request_id=checkout_request_id)
         
-    return Response({"ResultCode": 0, "ResultDesc": "Success"})
+        if result_code == 0:
+            # Code 0 means Success
+            metadata_items = stk_callback.get('CallbackMetadata', {}).get('Item', [])
+            mpesa_receipt = None
+            
+            for item in metadata_items:
+                if item.get('Name') == 'MpesaReceiptNumber':
+                    mpesa_receipt = item.get('Value')
+                    break
+            
+            # Update payment record to Completed
+            payment.mpesa_receipt = mpesa_receipt
+            payment.status = 'Completed'
+            payment.description = f"Automated M-Pesa reconciliation. Receipt: {mpesa_receipt}"
+            payment.save()
+            print(f"✅ Payment reconciled successfully for Receipt: {mpesa_receipt}")
+            
+        else:
+            # Any other code means user cancelled, insufficient funds, timeout, etc.
+            payment.status = 'Failed'
+            payment.description = f"Transaction failed. Safaricom ResultCode: {result_code}"
+            payment.save()
+            print(f"❌ Payment failed for CheckoutRequestID: {checkout_request_id}")
+
+    except FeePayment.DoesNotExist:
+        print(f"⚠️ Warning: Callback received for unknown CheckoutRequestID: {checkout_request_id}")
+        
+    # Safaricom expects a standard JSON acknowledgment response
+    return Response({"ResultCode": 0, "ResultDesc": "Confirmation received successfully"})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_class_ai_remarks(request):
+    user = request.user
+    school = user.school
+    grade = request.data.get('grade')
+    subject = request.data.get('subject')
+
+    if not grade or not subject:
+        return Response({"detail": "Please provide both grade and subject."}, status=400)
+
+    # 1. Fetch all students belonging to this school in the specific grade
+    students = StudentProfile.objects.filter(school=school, grade=grade)
+    
+    if not students.exists():
+        return Response({"detail": "No students found in this grade."}, status=404)
+
+    updated_count = 0
+
+    # 2. Batch process every student using our AI Engine
+    for student in students:
+        # Fetch all results for this student in this specific subject, ordered by date
+        results = StudentResult.objects.filter(
+            school=school,
+            student=student,
+            assessment__subject=subject
+        ).order_by('date_recorded') # Ensures oldest quiz is first, newest is last
+
+        if results.exists():
+            # Pass data to our engine
+            smart_remark, prediction = CBCAIEngine.generate_remarks_and_predictions(
+                student_profile=student,
+                subject=subject,
+                current_results=results
+            )
+            
+            # Update the latest result record with the AI-generated insight
+            latest_result = results.last()
+            latest_result.teacher_remarks = smart_remark
+            # Optional: You could save the prediction string into a dedicated status field if you decide to track it
+            latest_result.save()
+            updated_count += 1
+
+    return Response({
+        "message": f"Successfully processed {updated_count} student profiles.",
+        "status": "Success"
+    }, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def initiate_payment(request):
+    user = request.user
+    school = user.school
+    
+    # Simple validation check to ensure a tenant school is bound to the user
+    if not school:
+        return Response({"detail": "User account is not linked to any registered school."}, status=400)
+        
+    amount = request.data.get('amount')
+    phone = request.data.get('phone')
+    student_id = request.data.get('student_id')
+    
+    if not amount or not phone or not student_id:
+        return Response({"detail": "Missing dynamic fields: amount, phone, or student_id required."}, status=400)
+    
+    # 1. Initialize Daraja with the current school's specific credentials
+    client = DarajaClient(
+        consumer_key=school.mpesa_consumer_key,
+        consumer_secret=school.mpesa_consumer_secret,
+        shortcode=school.mpesa_shortcode
+    )
+    
+    # 2. Trigger STK Push
+    # Replace this placeholder string with your live deployed production domain later on Railway
+    callback_url = "https://jodasa-backend-production.up.railway.app/api/payments/callback/"
+    response = client.trigger_stk_push(phone, amount, callback_url)
+    
+    if response.get('ResponseCode') == '0':
+        # 3. Securely create a record marked as Pending
+        FeePayment.objects.create(
+            school=school,
+            student_id=student_id,
+            amount_paid=amount,
+            checkout_request_id=response.get('CheckoutRequestID'),
+            status='Pending'
+        )
+        return Response({"message": "STK Push Sent Successfully", "status": "Pending"}, status=200)
+    
+    return Response({"error": "Safaricom Daraja API rejected the process request.", "detail": response}, status=400)    
 # Create your views here.

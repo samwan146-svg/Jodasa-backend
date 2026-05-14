@@ -42,7 +42,7 @@ class DarajaClient:
             "TransactionDesc": "School Fee Payment"
         }
 
-        url = f"{self.base_url}/mpesa/stkpush/v1/query" # Use the process request URL for actual trigger
+        
         # Corrected URL for the process request:
         process_url = f"{self.base_url}/mpesa/stkpush/v1/processrequest"
         

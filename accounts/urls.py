@@ -39,4 +39,7 @@ urlpatterns = [
     path('students/<int:student_id>/report/', StudentReportCardView.as_view(), name='report-card'),
     path('students/<int:student_id>/report/pdf/', StudentReportCardPDFView.as_view(), name='report-card-pdf'),
     path('payments/callback/', mpesa_callback, name='mpesa-callback'),
+    path('api/payments/initiate/', views.initiate_payment, name='initiate-payment'),
+    path('api/payments/callback/', views.mpesa_callback, name='mpesa-callback'),
+    path('api/results/generate-remarks/', views.generate_class_ai_remarks, name='generate-ai-remarks'),
 ]
