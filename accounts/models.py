@@ -15,8 +15,7 @@ class School(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
     county = models.CharField(max_length=100)
-    is_on_pilot = models.BooleanField(default=True)
-    name = models.CharField(max_length=255)
+    is_on_pilot = models.BooleanField(default=True)    
     logo = models.ImageField(upload_to='school_logos/', null=True, blank=True)
     
     # M-Pesa Credentials per School
@@ -73,6 +72,7 @@ class User(AbstractUser):
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='students', null=True, blank=True) # Added null=True
     admission_number = models.CharField(max_length=50, unique=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, blank=True)
@@ -85,6 +85,7 @@ class StudentProfile(models.Model):
 
 class TeacherProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='teachers', null=True, blank=True) # Added null=True
     staff_id = models.CharField(max_length=50, unique=True)
     subjects = models.TextField(blank=True)
 
@@ -98,7 +99,7 @@ class AuditLog(models.Model):
         ('delete_user', 'Delete User'),
     ]
 
-    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True) # Added null=True
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     target_email = models.CharField(max_length=255)
@@ -110,6 +111,7 @@ class AuditLog(models.Model):
 
 class ParentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='parents', null=True, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
@@ -122,7 +124,7 @@ class Assessment(models.Model):
         ('Term 3', 'Term 3'),
     ]
 
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True) # Added null=True
     title = models.CharField(max_length=100)
     subject = models.CharField(max_length=50)
     grade = models.CharField(max_length=20)
@@ -135,6 +137,7 @@ class Assessment(models.Model):
 
 
 class StudentResult(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True) # Added null=True
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
     assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE)
     raw_score = models.DecimalField(max_digits=5, decimal_places=2)
@@ -158,7 +161,7 @@ class StudentResult(models.Model):
         return f"{self.student} - {self.assessment.title} - {self.competency_level}"
 
 class FeeStructure(models.Model):
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True) # Added null=True
     grade = models.CharField(max_length=20)
     term = models.CharField(max_length=20, choices=[('Term 1', 'Term 1'), ('Term 2', 'Term 2'), ('Term 3', 'Term 3')])
     year = models.IntegerField(default=2026)
@@ -168,11 +171,18 @@ class FeeStructure(models.Model):
         return f"{self.school.name} - {self.grade} ({self.term})"
 
 class FeePayment(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True) # Added null=True
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
     mpesa_receipt = models.CharField(max_length=100, unique=True, null=True, blank=True)
     description = models.CharField(max_length=255, default="School Fees Payment")
     timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20, 
+        choices=[('Pending', 'Pending'), ('Completed', 'Completed'), ('Failed', 'Failed')],
+        default='Pending'
+    )
+    checkout_request_id = models.CharField(max_length=100, blank=True, null=True) # To track the specific STK session
 
     def __str__(self):
         return f"{self.student.user.first_name} - {self.mpesa_receipt}"        
