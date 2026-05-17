@@ -16,7 +16,8 @@ from .views import StudentReportCardView
 from .views import StudentReportCardPDFView
 from . import views
 from .views import mpesa_callback
-
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 urlpatterns = [
@@ -43,4 +44,4 @@ urlpatterns = [
     path('api/payments/callback/', views.mpesa_callback, name='mpesa-callback'),
     path('api/results/generate-remarks/', views.generate_class_ai_remarks, name='generate-ai-remarks'),
     path('api/cbc/upload-evidence/', views.upload_cbc_evidence, name='upload-cbc-evidence'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
