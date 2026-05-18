@@ -35,7 +35,7 @@ from .serializers import AssessmentSerializer, StudentResultSerializer
 from django.http import FileResponse
 from .report_pdf import generate_report_card_pdf
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .models import StudentProfile, StudentResult, Assessment
@@ -44,7 +44,7 @@ from .models import FeePayment, StudentProfile, CBCEvidence
 import json
 from .cbc_ai_engine import CBCAIEngine
 from .daraja_utils import DarajaClient
-from rest_framework.parsers import MultiPartParser, FormParser, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 def get_client_ip(request):
