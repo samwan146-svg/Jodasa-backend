@@ -650,4 +650,24 @@ class FeePaymentListView(ListAPIView):
 
     def get_queryset(self):
         return FeePayment.objects.filter(school=self.request.user.school).order_by('-timestamp')
+
+# views.py
+class FeeStructureListCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserRole]
+
+    def get(self, request):
+        structures = FeeStructure.objects.filter(school=request.user.school)
+        # inline serialize
+        data = [{'grade': f.grade, 'term': f.term, 'total_amount': str(f.total_amount)} for f in structures]
+        return Response(data)
+
+    def post(self, request):
+        grade = request.data.get('grade')
+        term = request.data.get('term')
+        amount = request.data.get('total_amount')
+        FeeStructure.objects.update_or_create(
+            school=request.user.school, grade=grade, term=term,
+            defaults={'total_amount': amount, 'year': 2026}
+        )
+        return Response({"message": "Fee structure saved."}, status=201)
 # Create your views here.
