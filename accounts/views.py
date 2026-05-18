@@ -44,7 +44,7 @@ from .models import FeePayment, StudentProfile, CBCEvidence
 import json
 from .cbc_ai_engine import CBCAIEngine
 from .daraja_utils import DarajaClient
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, parser_classes
 
 
 def get_client_ip(request):
@@ -102,6 +102,7 @@ class UpdateUserRoleView(APIView):
             user.save()
 
             AuditLog.objects.create(
+                school=request.user.school,
                 user=request.user,
                 action='update_role',
                 target_email=user.email,
@@ -145,6 +146,7 @@ class CreateUserView(APIView):
            
 
             AuditLog.objects.create(
+                school=request.user.school,
                 user=request.user,
                 action='create_user',
                 target_email=user.email,
@@ -223,9 +225,10 @@ class DeleteUserView(APIView):
         email = user.email
 
         AuditLog.objects.create(
+                school=request.user.school,
                 user=request.user,
                 action='delete_user',
-                target_email=email,
+                target_email=email,                
                 ip_address=get_client_ip(request)
             )
 
@@ -329,7 +332,7 @@ class StudentResultListCreateView(APIView):
     def post(self, request):
         serializer = StudentResultSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(school=request.user.school)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -594,13 +597,11 @@ def initiate_payment(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def upload_cbc_evidence(request):
     user = request.user
     school = user.school
-    
-    # Enable file handling parsers
-    request.parsers = [MultiPartParser(), FormParser()]
-    
+        
     student_id = request.data.get('student_id')
     subject = request.data.get('subject')
     competency = request.data.get('competency')

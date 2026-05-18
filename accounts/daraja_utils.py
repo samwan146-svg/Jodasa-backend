@@ -6,7 +6,7 @@ import base64
 from decouple import config
 
 class DarajaClient:
-    def __init__(self):
+    def __init__(self, consumer_key=None, consumer_secret=None, shortcode=None):
         self.consumer_key = config('DARAJA_CONSUMER_KEY')
         self.consumer_secret = config('DARAJA_CONSUMER_SECRET')
         self.business_short_code = config('DARAJA_SHORTCODE')
