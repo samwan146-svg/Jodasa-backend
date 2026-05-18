@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Role, StudentProfile, TeacherProfile, ParentProfile   
 from .models import School
-from .models import AuditLog
+from .models import AuditLog, FeePayment
 from .models import Assessment, StudentResult
 
 
@@ -76,6 +76,19 @@ class SchoolSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
 
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role_name'] = user.role.name if user.role else ''
+        token['school_name'] = user.school.name if user.school else ''
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['role_name'] = self.user.role.name if self.user.role else ''
+        data['school_name'] = self.user.school.name if self.user.school else ''
+        return data
+
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source='role.name', read_only=True)
     school = serializers.CharField(source='school.name', read_only=True)
@@ -144,4 +157,15 @@ class StudentResultSerializer(serializers.ModelSerializer):
             'id', 'student', 'student_email', 'assessment', 'assessment_title',
             'subject', 'raw_score', 'competency_level', 'teacher_remarks', 'date_recorded'
         ]
-        read_only_fields = ['competency_level', 'date_recorded']        
+        read_only_fields = ['competency_level', 'date_recorded']
+
+class SchoolSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = School
+        fields = ['mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret', 'logo']  
+
+class FeePaymentSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student.user.first_name')
+    class Meta:
+        model = FeePayment
+        fields = ['id', 'student_name', 'amount_paid', 'mpesa_receipt', 'status', 'timestamp']           

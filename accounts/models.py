@@ -113,6 +113,7 @@ class ParentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='parents', null=True, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
+    children = models.ManyToManyField(StudentProfile, blank=True, related_name='parents')
 
     def __str__(self):
         return f"Parent: {self.user.email}"

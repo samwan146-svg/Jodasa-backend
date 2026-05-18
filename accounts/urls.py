@@ -13,7 +13,7 @@ from .views import AuditLogListView
 from .views import ListStudentsView, StudentDetailView
 from .views import AssessmentListCreateView, StudentResultListCreateView
 from .views import StudentReportCardView
-from .views import StudentReportCardPDFView
+from .views import StudentReportCardPDFView, SchoolSettingsView, FeePaymentListView
 from . import views
 from .views import mpesa_callback
 from django.conf import settings
@@ -43,4 +43,6 @@ urlpatterns = [
     path('payments/initiate/', views.initiate_payment, name='initiate-payment'),    
     path('results/generate-remarks/', views.generate_class_ai_remarks, name='generate-ai-remarks'),
     path('cbc/upload-evidence/', views.upload_cbc_evidence, name='upload-cbc-evidence'),
+    path('school/settings/', SchoolSettingsView.as_view(), name='school-settings'),
+    path('payments/', FeePaymentListView.as_view(), name='fee-payments'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

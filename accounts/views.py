@@ -29,13 +29,13 @@ from .models import AuditLog
 from .serializers import AuditLogSerializer
 from django.utils.dateparse import parse_date
 from .models import StudentProfile
-from .serializers import StudentProfileSerializer
+from .serializers import StudentProfileSerializer, SchoolSettingsSerializer
 from .models import Assessment, StudentResult
-from .serializers import AssessmentSerializer, StudentResultSerializer
+from .serializers import AssessmentSerializer, StudentResultSerializer, FeePaymentSerializer
 from django.http import FileResponse
 from .report_pdf import generate_report_card_pdf
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .models import StudentProfile, StudentResult, Assessment
@@ -44,7 +44,7 @@ from .models import FeePayment, StudentProfile, CBCEvidence
 import json
 from .cbc_ai_engine import CBCAIEngine
 from .daraja_utils import DarajaClient
-from rest_framework.parsers import MultiPartParser, FormParser, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
 def get_client_ip(request):
@@ -630,4 +630,25 @@ def upload_cbc_evidence(request):
 
     except StudentProfile.DoesNotExist:
         return Response({"detail": "Student record not found."}, status=404)
+
+class SchoolSettingsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserRole]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def patch(self, request):
+        school = request.user.school
+        if not school:
+            return Response({"error": "No school linked."}, status=400)
+        serializer = SchoolSettingsSerializer(school, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Settings updated."})
+        return Response(serializer.errors, status=400)
+
+class FeePaymentListView(ListAPIView):
+    serializer_class = FeePaymentSerializer
+    permission_classes = [IsAuthenticated, IsAdminUserRole]
+
+    def get_queryset(self):
+        return FeePayment.objects.filter(school=self.request.user.school).order_by('-timestamp')
 # Create your views here.
