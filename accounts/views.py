@@ -44,12 +44,7 @@ from .models import FeePayment, StudentProfile, CBCEvidence
 import json
 from .cbc_ai_engine import CBCAIEngine
 from .daraja_utils import DarajaClient
-<<<<<<< HEAD
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-=======
-from rest_framework.parsers import MultiPartParser, FormParser
->>>>>>> 2dabd23e233229fee0009a486ae14ffb5b09045b
-
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
