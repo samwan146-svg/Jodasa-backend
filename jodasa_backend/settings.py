@@ -15,6 +15,8 @@ from datetime import timedelta
 import dj_database_url
 import os
 from decouple import config
+import cloudinary
+import cloudinary.uploader
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -57,6 +59,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'accounts',
     'corsheaders',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +99,14 @@ WSGI_APPLICATION = 'jodasa_backend.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(default='sqlite:///db.sqlite3')
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': config('CLOUDINARY_API_KEY'),
+    'API_SECRET': config('CLOUDINARY_API_SECRET'),
 }
 
 
@@ -145,5 +157,5 @@ CSRF_TRUSTED_ORIGINS = [
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = '/media/'
+"""MEDIA_URL = '/media/'"""
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
