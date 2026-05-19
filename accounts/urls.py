@@ -12,7 +12,7 @@ from .views import ApiRootView
 from .views import AuditLogListView
 from .views import ListStudentsView, StudentDetailView
 from .views import AssessmentListCreateView, StudentResultListCreateView
-from .views import StudentReportCardView, FeeStructureListCreateView
+from .views import StudentReportCardView, FeeStructureListCreateView, bulk_import_students
 from .views import StudentReportCardPDFView, SchoolSettingsView, FeePaymentListView
 from . import views
 from .views import mpesa_callback
@@ -46,4 +46,5 @@ urlpatterns = [
     path('school/settings/', SchoolSettingsView.as_view(), name='school-settings'),
     path('payments/', FeePaymentListView.as_view(), name='fee-payments'),
     path('fees/', FeeStructureListCreateView.as_view(), name='fee-structure'),
+    path('students/bulk-import/', bulk_import_students, name='bulk-import-students'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

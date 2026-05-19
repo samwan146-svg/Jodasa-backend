@@ -46,6 +46,8 @@ from .cbc_ai_engine import CBCAIEngine
 from .daraja_utils import DarajaClient
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import FeeStructure
+import csv
+import io
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -68,7 +70,9 @@ class ApiRootView(APIView):
                 "update_role": "/api/users/<id>/role/",
                 "delete_user": "/api/users/<id>/delete/",
                 "list_students": "/api/students/",
-                "student_detail": "/api/students/<id>/"
+                "student_detail": "/api/students/<id>/",
+                "bulk_import_students": "/api/bulk-import-students/",
+                "audit_logs": "/api/audit-logs/",
             }
         })
 
@@ -682,4 +686,99 @@ class FeeStructureListCreateView(APIView):
             defaults={'total_amount': amount, 'year': 2026}
         )
         return Response({"message": "Fee structure saved."}, status=201)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsSubscriptionActive])
+@parser_classes([MultiPartParser, FormParser])
+def bulk_import_students(request):
+    user = request.user
+    school = user.school
+
+    if not (user.role and user.role.name in ['admin', 'teacher']):
+        return Response({"error": "Permission denied."}, status=403)
+
+    csv_file = request.FILES.get('file')
+    if not csv_file:
+        return Response({"error": "No file uploaded."}, status=400)
+
+    if not csv_file.name.endswith('.csv'):
+        return Response({"error": "File must be a .csv"}, status=400)
+
+    decoded = csv_file.read().decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    created = 0
+    errors = []
+    required_fields = {'first_name', 'last_name', 'grade'}
+
+    for i, row in enumerate(reader, start=2):  # start=2 because row 1 is header
+        # Strip whitespace from all values
+        row = {k.strip(): v.strip() for k, v in row.items()}
+
+        missing = required_fields - set(row.keys())
+        if missing:
+            errors.append(f"Row {i}: Missing columns {missing}")
+            continue
+
+        first_name = row.get('first_name', '')
+        last_name = row.get('last_name', '')
+        grade = row.get('grade', '')
+        stream = row.get('stream', '')
+        gender = row.get('gender', '')
+        admission_number = row.get('admission_number', '')
+
+        if not first_name or not last_name or not grade:
+            errors.append(f"Row {i}: first_name, last_name and grade are required.")
+            continue
+
+        try:
+            # Generate admission number if not provided
+            if not admission_number:
+                import time
+                admission_number = f"ADM{school.code}{i}{int(time.time()) % 10000}"
+
+            # Generate internal email — no real email needed
+            email = f"{first_name.lower()}.{last_name.lower()}.{admission_number}@{school.code}.akili.internal"
+
+            # Skip if email already exists in this school
+            if User.objects.filter(email=email).exists():
+                errors.append(f"Row {i}: {first_name} {last_name} already imported.")
+                continue
+
+            # Get or create student role
+            role = Role.objects.get(name='student')
+
+            # Create user
+            username = f"{first_name.lower()}{last_name.lower()}{admission_number}"[:30]
+            new_user = User.objects.create_user(
+                email=email,
+                username=username,
+                password='Akili@2026',
+                role=role,
+                school=school,
+                first_name=first_name,
+                last_name=last_name,
+            )
+
+            # Create student profile
+            StudentProfile.objects.create(
+                user=new_user,
+                school=school,
+                admission_number=admission_number,
+                grade=grade,
+                stream=stream,
+                gender=gender,
+            )
+
+            created += 1
+
+        except Exception as e:
+            errors.append(f"Row {i}: {str(e)}")
+            continue
+
+    return Response({
+        "message": f"Import complete. {created} students added.",
+        "created": created,
+        "errors": errors
+    }, status=200)
 # Create your views here.
