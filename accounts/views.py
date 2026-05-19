@@ -135,15 +135,26 @@ class ListUsersView(ListAPIView):
         
 
 class CreateUserView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+    permission_classes = [IsAuthenticated, IsSubscriptionActive]  # removed IsAdminUserRole
 
     def post(self, request):
+        # Only allow admin OR teacher, and teachers can only create students
+        user = request.user
+        is_admin = user.role and user.role.name == 'admin'
+        is_teacher = user.role and user.role.name == 'teacher'
+
+        if not is_admin and not is_teacher:
+            return Response({"error": "Permission denied."}, status=403)
+
         serializer = CreateUserByAdminSerializer(data=request.data, context={'request': request})
 
         if serializer.is_valid():
-            user = serializer.save()
+            # Teachers can only create student accounts
+            requested_role = request.data.get('role', '')
+            if is_teacher and requested_role != 'student':
+                return Response({"error": "Teachers can only register students."}, status=403)
 
-           
+            user = serializer.save()
 
             AuditLog.objects.create(
                 school=request.user.school,
@@ -241,7 +252,7 @@ class DeleteUserView(APIView):
 
 class ListStudentsView(ListAPIView):
     serializer_class = StudentProfileSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+    permission_classes = [IsAuthenticated, IsSubscriptionActive]
 
     filter_backends = [filters.SearchFilter]
     search_fields = ['user__email', 'admission_number', 'grade', 'stream']
@@ -252,7 +263,7 @@ class ListStudentsView(ListAPIView):
         )
 
 class StudentDetailView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUserRole, IsSubscriptionActive]
+    permission_classes = [IsAuthenticated, IsSubscriptionActive]
 
     def get(self, request, student_id):
         student = get_object_or_404(
