@@ -468,7 +468,9 @@ class StudentReportCardPDFView(APIView):
             }
         }
 
-        buffer = generate_report_card_pdf(data)
+        # Pass school logo
+        school_logo = request.user.school.logo if request.user.school.logo else None
+        buffer = generate_report_card_pdf(data, school_logo=school_logo)
 
         return FileResponse(
             buffer,
