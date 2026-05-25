@@ -151,7 +151,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://jodasa-backend-production.up.railway.app'
+    'https://jodasa-backend-production.up.railway.app',
+    'https://jodasa-backend.onrender.com',
 ]
 
 STATIC_URL = '/static/'
