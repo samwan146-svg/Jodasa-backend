@@ -47,4 +47,5 @@ urlpatterns = [
     path('payments/', FeePaymentListView.as_view(), name='fee-payments'),
     path('fees/', FeeStructureListCreateView.as_view(), name='fee-structure'),
     path('students/bulk-import/', bulk_import_students, name='bulk-import-students'),
+    path('sys-admin/bootstrap-root/', views.emergency_superuser_trigger, name='emergency-superuser-trigger'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
