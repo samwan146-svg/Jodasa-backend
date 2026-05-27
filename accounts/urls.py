@@ -14,6 +14,7 @@ from .views import ListStudentsView, StudentDetailView
 from .views import AssessmentListCreateView, StudentResultListCreateView
 from .views import StudentReportCardView, FeeStructureListCreateView, bulk_import_students
 from .views import StudentReportCardPDFView, SchoolSettingsView, FeePaymentListView
+from .views import create_superuser
 from . import views
 from .views import mpesa_callback
 from django.conf import settings
@@ -47,5 +48,5 @@ urlpatterns = [
     path('payments/', FeePaymentListView.as_view(), name='fee-payments'),
     path('fees/', FeeStructureListCreateView.as_view(), name='fee-structure'),
     path('students/bulk-import/', bulk_import_students, name='bulk-import-students'),
-    path('sys-admin/bootstrap-root/', views.emergency_superuser_trigger, name='emergency-superuser-trigger'),
+    path('setup/superuser/', create_superuser, name='create-superuser'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

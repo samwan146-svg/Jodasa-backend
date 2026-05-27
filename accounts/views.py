@@ -784,23 +784,20 @@ def bulk_import_students(request):
         "errors": errors
     }, status=200)
 
-from django.http import HttpResponse
-from django.contrib.auth import get_user_model
-import os
-
-def emergency_superuser_trigger(request):
-    # Quick token/password query protection so random traffic doesn't hijack this
-    secret_key = request.GET.get('key')
-    if secret_key != "my_ultra_secret_temporary_key_123":
-        return HttpResponse("Unauthorized", status=403)
-        
-    User = get_user_model()
-    if not User.objects.filter(username="admin").exists():
-        User.objects.create_superuser(
-            username="admin",
-            email="admin@akili.ac.ke",
-            password="YourSecurePasswordHere!"
-        )
-        return HttpResponse("✅ Admin account provisioned safely.")
-    return HttpResponse("ℹ️ Account already provisioned.")
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_superuser(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    secret = request.data.get('secret')
+    
+    # Secret key so random people can't hit this
+    if secret != 'akili_setup_2026':
+        return Response({'error': 'Forbidden'}, status=403)
+    
+    if User.objects.filter(email=email).exists():
+        return Response({'error': 'User already exists'}, status=400)
+    
+    User.objects.create_superuser(email=email, password=password)
+    return Response({'message': f'Superuser {email} created successfully'})
 # Create your views here.
